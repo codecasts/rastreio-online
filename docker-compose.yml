@@ -1,0 +1,90 @@
+###############################################
+# RASTREIO.ONLINE                             #
+# Base docker-compose configuration file.     #
+###############################################
+
+# CONFIG
+version: '2'
+
+# VOLUMES
+volumes:
+  # MYSQL
+  rastreio-mysql-data:
+    driver: local
+  # REDIS
+  rastreio-redis-data:
+    driver: local
+  # ~/.config
+  rastreio-temp-config:
+    driver: local
+  # ~/.local
+  rastreio-temp-local:
+    driver: local
+  # ~/.cache
+  rastreio-temp-cache:
+    driver: local
+  # ~/.composer
+  rastreio-temp-composer:
+    driver: local
+
+# SERVICES
+services:
+
+  # WEB
+  web:
+    image: ambientum/php:7.1-nginx
+    container_name: rastreio-web
+    environment:
+      - XDEBUG_ENABLED=true
+      - PHP_IDE_CONFIG=serverName=ambientum
+    volumes:
+      - .:/var/www/app
+      - rastreio-temp-config:/home/ambientum/.config
+      - rastreio-temp-cache:/home/ambientum/.cache
+      - rastreio-temp-local:/home/ambientum/.local
+      - rastreio-temp-composer:/home/ambientum/.composer
+    links:
+      - mysql
+      - cache
+      - mailcatcher
+
+  # QUEUE
+  queue:
+    image: ambientum/php:7.1
+    container_name: rastreio-queue
+    command: php artisan queue:listen --tries=3
+    volumes:
+      - .:/var/www/app
+      - rastreio-temp-config:/home/ambientum/.config
+      - rastreio-temp-cache:/home/ambientum/.cache
+      - rastreio-temp-local:/home/ambientum/.local
+      - rastreio-temp-composer:/home/ambientum/.composer
+    links:
+      - mysql
+      - cache
+      - mailcatcher
+
+  # MAILCATCHER
+  mailcatcher:
+    image: ambientum/mailcatcher:latest
+    container_name: rastreio-mailcatcher
+
+  # MYSQL
+  mysql:
+    image: ambientum/mysql:5.7
+    container_name: rastreio-mysql
+    volumes:
+      - rastreio-mysql-data:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=rastreio
+      - MYSQL_DATABASE=rastreio
+      - MYSQL_USER=rastreio
+      - MYSQL_PASSWORD=ratreio
+
+  # REDIS
+  cache:
+    image: ambientum/redis:3.2
+    container_name: rastreio-redis
+    command: --appendonly yes
+    volumes:
+      - rastreio-redis-data:/data
