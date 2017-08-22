@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Providers;
+namespace Rastreio\Providers;
 
 use Illuminate\Support\ServiceProvider;
 
